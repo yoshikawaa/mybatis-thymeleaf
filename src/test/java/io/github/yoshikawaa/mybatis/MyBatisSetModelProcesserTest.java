@@ -17,7 +17,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
-public class MyBatisWhereModelProcesserTest {
+public class MyBatisSetModelProcesserTest {
 
     private static final TemplateEngine engine = new TemplateEngine();
 
@@ -38,14 +38,14 @@ public class MyBatisWhereModelProcesserTest {
     public void test1() {
 
         Context context = new Context();
+        context.setVariable("id", "001");
 
-        String text = engine.process("select", context);
+        String text = engine.process("update", context);
         System.out.println(text);
 
         assertThat(toList(text), allOf(
-                not(hasItem("WHERE")),
-                not(hasItem("   first_name = Atsushi ")),
-                not(hasItem("   AND last_name = Yoshikawa "))
+                not(hasItem("   first_name = Atsushi, ")),
+                not(hasItem("   last_name = Yoshikawa "))
                         ));
     }
 
@@ -53,16 +53,16 @@ public class MyBatisWhereModelProcesserTest {
     public void test2() {
 
         Context context = new Context();
+        context.setVariable("id", "001");
         context.setVariable("firstName", "Atsushi");
         context.setVariable("lastName", "Yoshikawa");
 
-        String text = engine.process("select", context);
+        String text = engine.process("update", context);
         System.out.println(text);
         
         assertThat(toList(text), allOf(
-                hasItem("WHERE"),
-                hasItem("   first_name = Atsushi "),
-                hasItem("   AND last_name = Yoshikawa ")
+                hasItem("   first_name = Atsushi, "),
+                hasItem("   last_name = Yoshikawa ")
                         ));
     }
 
@@ -70,15 +70,15 @@ public class MyBatisWhereModelProcesserTest {
     public void test3() {
 
         Context context = new Context();
+        context.setVariable("id", "001");
         context.setVariable("firstName", "Atsushi");
 
-        String text = engine.process("select", context);
+        String text = engine.process("update", context);
         System.out.println(text);
 
         assertThat(toList(text), allOf(
-                hasItem("WHERE"),
                 hasItem("   first_name = Atsushi "),
-                not(hasItem("   AND last_name = Yoshikawa "))
+                not(hasItem("   last_name = Yoshikawa "))
                         ));
     }
 
@@ -86,14 +86,14 @@ public class MyBatisWhereModelProcesserTest {
     public void test4() {
 
         Context context = new Context();
+        context.setVariable("id", "001");
         context.setVariable("lastName", "Yoshikawa");
 
-        String text = engine.process("select", context);
+        String text = engine.process("update", context);
         System.out.println(text);
 
         assertThat(toList(text), allOf(
-                hasItem("WHERE"),
-                not(hasItem("   first_name = Atsushi ")),
+                not(hasItem("   first_name = Atsushi, ")),
                 hasItem("   last_name = Yoshikawa ")
                         ));
     }

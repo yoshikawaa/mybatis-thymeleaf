@@ -20,6 +20,7 @@ public class MybatisDialect extends AbstractProcessorDialect {
     public Set<IProcessor> getProcessors(String dialectPrefix) {
         final Set<IProcessor> processors = new HashSet<>();
         processors.add(new MyBatisWhereModelProcesser(getPrefix()));
+        processors.add(new MyBatisSetModelProcesser(getPrefix()));
         return processors;
     }
 
