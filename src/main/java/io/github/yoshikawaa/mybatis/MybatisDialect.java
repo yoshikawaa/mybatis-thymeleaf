@@ -13,7 +13,11 @@ public class MybatisDialect extends AbstractProcessorDialect {
     private static final String DIALECT_PREFIX = "mybatis";
 
     public MybatisDialect() {
-        super(DIALECT_NAME, DIALECT_PREFIX, StandardDialect.PROCESSOR_PRECEDENCE);
+        this(DIALECT_PREFIX);
+    }
+
+    public MybatisDialect(String dialectPrefix) {
+        super(DIALECT_NAME, dialectPrefix, StandardDialect.PROCESSOR_PRECEDENCE);
     }
 
     @Override

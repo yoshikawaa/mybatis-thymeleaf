@@ -1,7 +1,5 @@
 package io.github.yoshikawaa.mybatis;
 
-import java.util.List;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.thymeleaf.context.ITemplateContext;
@@ -28,9 +26,8 @@ public class MyBatisWhereModelProcesser extends AbstractAttributeModelProcessor 
     private static final String IF_ATTRIBUTE_NAME = "if";
 
     private static final String KEYWORD_WHERE = "WHERE";
-    private static final Pattern PATTERN_EMPTY = Pattern.compile("(\\r\\n|\\r|\\n| |Å@)*");
-    private static final Pattern PATTERN_COMMENT = Pattern.compile("(\\r\\n|\\r|\\n| |Å@)*--");
-    private static final Pattern PATTERN_AND_OR = Pattern.compile("(\\r\\n|\\r|\\n| |Å@)*(AND|OR)");
+    private static final Pattern PATTERN_COMMENT = Pattern.compile("--");
+    private static final Pattern PATTERN_AND_OR = Pattern.compile("(AND|OR)");
 
     public MyBatisWhereModelProcesser(String dialectPrefix) {
         super(TEMPLATE_MODE, dialectPrefix, null, false, ATTRIBUTE_NAME, true, PRECEDENCE, true);
@@ -40,21 +37,27 @@ public class MyBatisWhereModelProcesser extends AbstractAttributeModelProcessor 
     protected void doProcess(ITemplateContext context, IModel model, AttributeName attributeName, String attributeValue,
             IElementModelStructureHandler structureHandler) {
 
-        final List<ITemplateEvent> templateEvents = ModelUtils.getTemplateEvents(model);
+        final Pattern patternAndOr = StringUtils.isEmptyOrWhitespace(attributeValue) ? PATTERN_AND_OR
+                : Pattern.compile(attributeValue);
+
         final IModelFactory modelFactory = context.getModelFactory();
 
-        for (int i = 0; i < templateEvents.size(); i++) {
-            ITemplateEvent templateEvent = templateEvents.get(i);
+        for (int i = 1; i < model.size(); i++) {
+
+            final ITemplateEvent templateEvent = model.get(i);
             if (templateEvent instanceof IOpenElementTag) {
+
+                // find th:if event.
                 for (IAttribute attr : ((IOpenElementTag) templateEvent).getAllAttributes()) {
                     final AttributeName attrName = attr.getAttributeDefinition().getAttributeName();
                     if (STANDARD_PREFIX_NAME.equals(attrName.getPrefix())
                             && IF_ATTRIBUTE_NAME.equals(attrName.getAttributeName())) {
+
+                        // skip until close event if expression provide false.
                         if (!ExpressionUtils.execute(context, attr.getValue(), Boolean.class)) {
-                            // skip until close event if th:if expression provide false.
                             int countOpenCloseTag = 1;
                             while (countOpenCloseTag > 0) {
-                                ITemplateEvent nextEvent = templateEvents.get(++i);
+                                final ITemplateEvent nextEvent = model.get(++i);
                                 if (nextEvent instanceof IOpenElementTag) {
                                     countOpenCloseTag++;
                                 } else if (nextEvent instanceof ICloseElementTag) {
@@ -66,15 +69,16 @@ public class MyBatisWhereModelProcesser extends AbstractAttributeModelProcessor 
                 }
             } else if (templateEvent instanceof IText) {
                 final String text = ((IText) templateEvent).getText();
-                if (!(StringUtils.isEmpty(text) || PATTERN_EMPTY.matcher(text).matches()
-                        || PATTERN_COMMENT.matcher(text).lookingAt())) {
+                final String trimmedText = text.trim();
+
+                if (!(StringUtils.isEmpty(trimmedText) || PATTERN_COMMENT.matcher(trimmedText).lookingAt())) {
+
                     // insert WHERE if where body exists.
                     model.insert(0, modelFactory.createText(KEYWORD_WHERE));
 
-                    Matcher matcher = PATTERN_AND_OR.matcher(text);
-                    if (matcher.lookingAt()) {
-                        // trim AND/OR if first where body.
-                        model.replace(i + 1, modelFactory.createText(matcher.replaceFirst("")));
+                    // trim AND/OR from first where body.
+                    if (patternAndOr.matcher(trimmedText).lookingAt()) {
+                        model.replace(i + 1, modelFactory.createText(patternAndOr.matcher(text).replaceFirst("")));
                     }
                     break;
                 }
